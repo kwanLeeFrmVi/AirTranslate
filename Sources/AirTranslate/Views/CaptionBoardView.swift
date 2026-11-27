@@ -167,6 +167,20 @@ private struct CaptionTranscriptFeed: View {
                         scrollToLatestRevision()
                     }
                 }
+                .overlay(alignment: .topTrailing) {
+                    if session.canSaveVisibleTranscript {
+                        Button {
+                            session.saveVisibleTranscript()
+                        } label: {
+                            Label(AppText.saveTranscriptNow, systemImage: "square.and.arrow.down")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .airFocusRing(cornerRadius: AirTranslateDesign.Radius.control)
+                        .help(AppText.saveTranscriptNowHelp)
+                        .padding(AirTranslateDesign.Spacing.sm)
+                    }
+                }
                 .overlay(alignment: .bottomTrailing) {
                     if !viewportState.followState.isFollowingLatest, !session.lines.isEmpty {
                         Button {

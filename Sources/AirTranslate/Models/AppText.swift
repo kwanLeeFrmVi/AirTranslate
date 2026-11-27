@@ -1055,6 +1055,15 @@ enum AppText {
         english: "Captions will appear here.",
         korean: "기록이 시작되면 여기에 표시됩니다."
     )
+    static let saveTranscriptNow = localized(
+        english: "Save Transcript", korean: "기록 저장", japanese: "記録を保存", chineseSimplified: "保存记录"
+    )
+    static let saveTranscriptNowHelp = localized(
+        english: "Save these captions, original and translation, to Saved Transcripts.",
+        korean: "이 자막의 원문과 번역을 저장된 기록에 저장합니다.",
+        japanese: "この字幕の原文と翻訳を保存済みの記録に保存します。",
+        chineseSimplified: "将这些字幕的原文和译文保存到已保存记录。"
+    )
     static let transcriptSavedToast = localized(
         english: "Transcript saved",
         korean: "기록이 저장되었습니다"
