@@ -665,6 +665,10 @@ private final class ScreenTextRegionOutline: NSPanel {
         override func mouseUp(with event: NSEvent) { owner.endDrag() }
 
         override func draw(_ dirtyRect: NSRect) {
+            // The window is transparent: erase the previous frame, or a moved outline and
+            // handle stay on screen as a second box.
+            NSColor.clear.set()
+            dirtyRect.fill(using: .copy)
             let orange = NSColor.systemOrange.withAlphaComponent(0.85)
             let frame = owner.convertFromScreen(owner.region).insetBy(dx: -2.5, dy: -2.5)
             let path = NSBezierPath(roundedRect: frame, xRadius: 4, yRadius: 4)

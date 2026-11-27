@@ -1883,6 +1883,7 @@ final class TranslationSessionStore {
         guard isReadingScreenText else { return }
         screenTextReader?.stop()
         screenTextReader = nil
+        if isTranscriptPersistenceEnabled { saveVisibleTranscript() }
         screenTextTranslationTask?.cancel()
         screenTextTranslationTask = nil
         screenTextInterpreter?.stop()
@@ -3453,8 +3454,19 @@ final class TranslationSessionStore {
         PipelineDiagnostics.record("floating.activity", values: ["active": active ? 1 : 0])
     }
 
+    /// While Read Screen runs, a new line gets its translation a moment after it appears; the
+    /// floating captions keep showing the latest translated line meanwhile, so they don't blink
+    /// empty (an empty caption window also stops taking clicks, so it couldn't be dragged).
+    private var screenTextFloatingLine: CaptionLine? {
+        guard isReadingScreenText else { return nil }
+        return lines.last { !$0.translatedText.isEmpty } ?? lines.last
+    }
+
     var floatingSourceText: String {
         guard isFloatingCaptionPresentationActive else { return "" }
+        if let line = screenTextFloatingLine {
+            return floatingCaptionText(from: line.sourceText, usesPrimaryFont: floatingSourceUsesPrimaryFont)
+        }
         let displayText = floatingPresentedSourceText.trimmingCharacters(in: .whitespacesAndNewlines)
         if !displayText.isEmpty {
             return floatingCaptionText(from: displayText, usesPrimaryFont: floatingSourceUsesPrimaryFont)
@@ -3470,6 +3482,9 @@ final class TranslationSessionStore {
 
     var floatingTranslationText: String {
         guard isFloatingCaptionPresentationActive else { return "" }
+        if let line = screenTextFloatingLine {
+            return line.translatedText.isEmpty ? "" : floatingCaptionText(from: line.translatedText)
+        }
         let displaySourceText = floatingPresentedSourceText.trimmingCharacters(in: .whitespacesAndNewlines)
         if !displaySourceText.isEmpty {
             let translatedText = floatingDisplayTranslationText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -5575,6 +5590,35 @@ final class TranslationSessionStore {
             }
             return files
         }
+    }
+
+    /// Whether the captions on screen can be saved now (not while capture is running, which
+    /// saves through its own autosave).
+    var canSaveVisibleTranscript: Bool {
+        !lines.isEmpty && !isRunning && !isStarting
+    }
+
+    /// Saves the captions on screen to the transcript library: the original and, when there
+    /// is one, the translation as a second file, whatever the saved-content setting is.
+    @discardableResult
+    func saveVisibleTranscript() -> Bool {
+        let sourceText = appleSavedSourceTranscriptText
+        guard !sourceText.isEmpty else { return false }
+        let translatedText = appleSavedTranslatedTranscriptText
+        let baseFileName = makeTranscriptFileName(for: sourceText, date: Date())
+        var files = [(fileName: String, text: String)]()
+        if translatedText.isEmpty {
+            files.append((baseFileName, sourceText))
+        } else {
+            files.append((transcriptVariantFileName(baseFileName, suffix: "original"), sourceText))
+            files.append((transcriptVariantFileName(baseFileName, suffix: "translation"), translatedText))
+        }
+        for file in files where !writeTranscriptText(file.text, fileName: file.fileName) {
+            return false
+        }
+        loadSavedTranscripts()
+        showToast(AppText.transcriptSavedToast)
+        return true
     }
 
     @discardableResult
